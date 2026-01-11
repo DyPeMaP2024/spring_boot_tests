@@ -23,7 +23,7 @@ services:
     depends_on:
       - wiremock
 
-  tests:
+  tests-api:
     build:
       context: ..
       dockerfile: docker/Dockerfile.test
@@ -39,3 +39,40 @@ services:
     networks:
       - default
     command: ["sh", "-c", "sleep 10 && pytest tests/api/ -v --tb=short --junit-xml=reports/junit.xml --html=reports/report.html --self-contained-html"]
+
+  tests-integration:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    environment:
+      - PYTHONPATH=/app
+      - APP_URL=http://app:8080
+      - MOCK_URL=http://wiremock:8080
+    volumes:
+      - ../reports:/app/reports
+    depends_on:
+      - app
+      - wiremock
+    networks:
+      - default
+    command: ["sh", "-c", "sleep 10 && pytest tests/integration/ -v --tb=short -m integration --junit-xml=reports/integration-junit.xml --html=reports/integration-report.html --self-contained-html"]
+
+  tests-performance:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    environment:
+      - PYTHONPATH=/app
+      - APP_URL=http://app:8080
+      - MOCK_URL=http://wiremock:8080
+      - LOCUST_USERS=5
+      - LOCUST_SPAWN_RATE=1
+      - LOCUST_RUN_TIME=30s
+    volumes:
+      - ../reports:/app/reports
+    depends_on:
+      - app
+      - wiremock
+    networks:
+      - default
+    command: ["sh", "-c", "sleep 10 && locust -f tests/performance/locustfile.py --host=http://app:8080 --users=5 --spawn-rate=1 --run-time=30s --headless --html=reports/performance/locust-report.html --csv=reports/performance/locust --loglevel=WARNING"]
