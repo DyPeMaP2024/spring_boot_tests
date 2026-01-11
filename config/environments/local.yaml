@@ -1,0 +1,12 @@
+# Локальное окружение
+app:
+  base_url: "http://localhost:8080"
+  api_key: "qazWSXedc"
+  timeout: 30
+
+mock:
+  base_url: "http://localhost:8888"
+  timeout: 10
+
+logging:
+  level: "DEBUG"

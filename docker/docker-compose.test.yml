@@ -1,0 +1,41 @@
+version: '3.8'
+
+services:
+  wiremock:
+    image: wiremock/wiremock:latest
+    ports:
+      - "8888:8080"
+    volumes:
+      - ../config/wiremock/mappings:/home/wiremock/mappings
+      - ../config/wiremock/__files:/home/wiremock/__files
+    command: ["--global-response-templating", "--verbose"]
+
+  app:
+    image: eclipse-temurin:17-jre
+    ports:
+      - "8080:8080"
+    volumes:
+      - ../../app/internal-0.0.1-SNAPSHOT.jar:/app/app.jar
+    environment:
+      - secret=qazWSXedc
+      - mock=http://wiremock:8080/
+    command: ["java", "-Dsecret=qazWSXedc", "-Dmock=http://wiremock:8080/", "-jar", "/app/app.jar"]
+    depends_on:
+      - wiremock
+
+  tests:
+    build:
+      context: ..
+      dockerfile: docker/Dockerfile.test
+    environment:
+      - PYTHONPATH=/app
+      - APP_URL=http://app:8080
+      - MOCK_URL=http://wiremock:8080
+    volumes:
+      - ../reports:/app/reports
+    depends_on:
+      - app
+      - wiremock
+    networks:
+      - default
+    command: ["sh", "-c", "sleep 10 && pytest tests/api/ -v --tb=short --junit-xml=reports/junit.xml --html=reports/report.html --self-contained-html"]
